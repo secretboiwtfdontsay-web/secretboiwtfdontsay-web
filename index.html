@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>MC Pack Fixer</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            font-family: Arial, sans-serif;
+
+            background: #111;
+            color: white;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 500px;
+
+            padding: 30px;
+
+            background: #1b1b1b;
+
+            border-radius: 16px;
+
+            text-align: center;
+
+            box-shadow:
+                0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        p {
+            color: #aaa;
+        }
+
+        input[type="file"] {
+            width: 100%;
+
+            padding: 12px;
+
+            margin: 20px 0;
+
+            background: #292929;
+
+            color: white;
+
+            border: 1px solid #444;
+
+            border-radius: 8px;
+        }
+
+        button {
+            width: 100%;
+
+            padding: 13px;
+
+            border: none;
+
+            border-radius: 8px;
+
+            background: white;
+            color: black;
+
+            font-size: 15px;
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 20px;
+
+            color: #aaa;
+
+            word-break: break-word;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+    <div class="container">
+
+        <h1>MC Pack Fixer</h1>
+
+        <p>
+            Upload a Minecraft .mcpack or .zip
+        </p>
+
+        <input
+            type="file"
+            id="file"
+            accept=".mcpack,.zip"
+        >
+
+        <button
+            id="fixButton"
+            onclick="fixPack()"
+        >
+            Fix & Download
+        </button>
+
+        <div id="status"></div>
+
+    </div>
+
+
+    <!-- JSZip -->
+    <script
+        src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
+    ></script>
+
+    <!-- Your script -->
+    <script src="script.js"></script>
+
+</body>
+
+</html>
