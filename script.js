@@ -1,388 +1,212 @@
 async function fixPack() {
 
-    const fileInput =
-        document.getElementById("file");
-
-    const status =
-        document.getElementById("status");
-
-    const button =
-        document.getElementById("fixButton");
-
-
-    /*
-        Check if a file was selected
-    */
+    const fileInput = document.getElementById("file");
+    const status = document.getElementById("status");
+    const button = document.getElementById("fixButton");
 
     if (!fileInput.files.length) {
-
-        status.textContent =
-            "Please select a .mcpack or .zip file.";
-
+        status.textContent = "Please select a .mcpack, .mcaddon, or .zip file.";
         return;
     }
 
-
-    const file =
-        fileInput.files[0];
-
-
-    const fileName =
-        file.name.toLowerCase();
-
-
-    /*
-        Check file type
-    */
-
-    if (
-        !fileName.endsWith(".zip") &&
-        !fileName.endsWith(".mcpack")
-    ) {
-
-        status.textContent =
-            "Only .zip and .mcpack files are supported.";
-
-        return;
-    }
-
+    const file = fileInput.files[0];
 
     try {
 
         button.disabled = true;
+        status.textContent = "Reading pack...";
 
+        const originalName = file.name;
 
-        /*
-            Load the pack
-        */
+        const zip = await JSZip.loadAsync(file);
 
-        status.textContent =
-            "Reading pack...";
-
-
-        const zip =
-            await JSZip.loadAsync(file);
-
+        let manifestCount = 0;
+        let changedCount = 0;
+        let packFiles = [];
 
         /*
-            Find EVERY manifest.json
-        */
+         * Recursively process an archive.
+         *
+         * This handles:
+         *
+         * ZIP
+         *  ├── RP.mcpack
+         *  └── BP.mcpack
+         *
+         * and:
+         *
+         * ZIP
+         *  └── addon.mcaddon
+         *       ├── RP.mcpack
+         *       └── BP.mcpack
+         */
 
-        const manifests = [];
+        async function processArchive(archive) {
 
+            const entries = [];
 
-        zip.forEach((path, entry) => {
-
-            if (
-                !entry.dir &&
-                path.toLowerCase().endsWith("manifest.json")
-            ) {
-
-                manifests.push(entry);
-
-            }
-
-        });
-
-
-        /*
-            Make sure we found one
-        */
-
-        if (manifests.length === 0) {
-
-            throw new Error(
-                "No manifest.json files were found."
-            );
-
-        }
-
-
-        status.textContent =
-            `Found ${manifests.length} manifest(s).`;
-
-
-        let fixedCount = 0;
-
-
-        /*
-            Process EVERY manifest
-        */
-
-        for (
-            const manifestFile
-            of manifests
-        ) {
-
-            try {
-
-                /*
-                    Read manifest
-                */
-
-                const text =
-                    await manifestFile.async("text");
-
-
-                /*
-                    Convert JSON
-                    */
-
-                const manifest =
-                    JSON.parse(text);
-
-
-                let changed = false;
-
-
-                /*
-                    ==========================
-                    HEADER
-                    ==========================
-                */
-
-                if (manifest.header) {
-
-
-                    /*
-                        Change NAME
-                    */
-
-                    if (
-                        Object.prototype.hasOwnProperty.call(
-                            manifest.header,
-                            "name"
-                        )
-                    ) {
-
-                        manifest.header.name =
-                            "pack.name";
-
-                        changed = true;
-
-                    }
-
-
-                    /*
-                        Change DESCRIPTION
-                    */
-
-                    if (
-                        Object.prototype.hasOwnProperty.call(
-                            manifest.header,
-                            "description"
-                        )
-                    ) {
-
-                        manifest.header.description =
-                            "pack.description";
-
-                        changed = true;
-
-                    }
-
+            archive.forEach((path, entry) => {
+                if (!entry.dir) {
+                    entries.push({
+                        path: path,
+                        entry: entry
+                    });
                 }
-
-
-                /*
-                    ==========================
-                    MODULES
-                    ==========================
-                */
-
-                if (
-                    Array.isArray(
-                        manifest.modules
-                    )
-                ) {
-
-                    for (
-                        const module
-                        of manifest.modules
-                    ) {
-
-
-                        if (
-                            Object.prototype.hasOwnProperty.call(
-                                module,
-                                "name"
-                            )
-                        ) {
-
-                            module.name =
-                                "pack.name";
-
-                            changed = true;
-
-                        }
-
-
-                        if (
-                            Object.prototype.hasOwnProperty.call(
-                                module,
-                                "description"
-                            )
-                        ) {
-
-                            module.description =
-                                "pack.description";
-
-                            changed = true;
-
-                        }
-
-                    }
-
-                }
-
-
-                /*
-                    Save modified manifest
-                */
-
-                if (changed) {
-
-                    zip.file(
-                        manifestFile.name,
-
-                        JSON.stringify(
-                            manifest,
-                            null,
-                            2
-                        )
-                    );
-
-
-                    fixedCount++;
-
-                }
-
-            }
-
-            catch (error) {
-
-                console.warn(
-                    "Could not process:",
-                    manifestFile.name,
-                    error
-                );
-
-            }
-
-        }
-
-
-        /*
-            Make sure something changed
-        */
-
-        if (fixedCount === 0) {
-
-            throw new Error(
-                "No name or description fields were found."
-            );
-
-        }
-
-
-        /*
-            Create new MCPACK
-        */
-
-        status.textContent =
-            "Creating .mcpack...";
-
-
-        const output =
-            await zip.generateAsync({
-
-                type: "blob",
-
-                compression: "DEFLATE",
-
-                compressionOptions: {
-                    level: 6
-                }
-
             });
 
+            for (const item of entries) {
 
-        /*
-            Remove original extension
+                const path = item.path;
+                const entry = item.entry;
 
-            Example:
+                const lowerPath = path.toLowerCase();
 
-            CoolPack.zip
+                /*
+                 * Direct manifest.json
+                 */
 
-            becomes:
+                if (lowerPath.endsWith("manifest.json")) {
 
-            CoolPack.mcpack
-        */
+                    try {
 
-        const outputName =
-            file.name.replace(
-                /\.(zip|mcpack)$/i,
-                ""
-            ) + ".mcpack";
+                        const text = await entry.async("text");
 
+                        const manifest = JSON.parse(text);
 
-        /*
-            Download
-        */
+                        let changed = false;
 
-        const url =
-            URL.createObjectURL(output);
+                        /*
+                         * ONLY change the HEADER
+                         */
 
+                        if (
+                            manifest.header &&
+                            typeof manifest.header === "object"
+                        ) {
 
-        const download =
-            document.createElement("a");
+                            if (
+                                Object.prototype.hasOwnProperty.call(
+                                    manifest.header,
+                                    "name"
+                                )
+                            ) {
 
+                                manifest.header.name = "pack.name";
+                                changed = true;
 
-        download.href =
-            url;
+                            }
 
+                            if (
+                                Object.prototype.hasOwnProperty.call(
+                                    manifest.header,
+                                    "description"
+                                )
+                            ) {
 
-        download.download =
-            outputName;
+                                manifest.header.description =
+                                    "pack.description";
 
+                                changed = true;
 
-        document.body.appendChild(
-            download
-        );
+                            }
 
+                        }
 
-        download.click();
+                        manifestCount++;
 
+                        if (changed) {
 
-        download.remove();
+                            archive.file(
+                                path,
+                                JSON.stringify(
+                                    manifest,
+                                    null,
+                                    2
+                                )
+                            );
 
+                            changedCount++;
 
-        /*
-            Clean up
-        */
+                        }
 
-        URL.revokeObjectURL(url);
+                    } catch (error) {
 
+                        console.warn(
+                            "Could not process manifest:",
+                            path,
+                            error
+                        );
 
-        status.textContent =
-            `Done! Fixed ${fixedCount} manifest(s).`;
+                    }
 
+                    continue;
+                }
 
-    }
+                /*
+                 * Nested .mcpack / .mcaddon
+                 */
 
-    catch (error) {
+                if (
+                    lowerPath.endsWith(".mcpack") ||
+                    lowerPath.endsWith(".mcaddon") ||
+                    lowerPath.endsWith(".zip")
+                ) {
 
-        console.error(error);
+                    try {
 
-        status.textContent =
-            "Error: " + error.message;
+                        const nestedData =
+                            await entry.async("uint8array");
 
-    }
+                        const nestedZip =
+                            await JSZip.loadAsync(nestedData);
 
-    finally {
+                        /*
+                         * Remember this Minecraft pack.
+                         */
 
-        button.disabled = false;
+                        if (
+                            lowerPath.endsWith(".mcpack") ||
+                            lowerPath.endsWith(".mcaddon")
+                        ) {
 
-    }
+                            packFiles.push({
+                                path: path,
+                                type: lowerPath.endsWith(".mcaddon")
+                                    ? "mcaddon"
+                                    : "mcpack"
+                            });
 
-}
+                        }
+
+                        /*
+                         * Process everything inside it.
+                         */
+
+                        await processArchive(nestedZip);
+
+                        /*
+                         * Rebuild the nested archive.
+                         */
+
+                        const rebuilt =
+                            await nestedZip.generateAsync({
+                                type: "uint8array",
+                                compression: "DEFLATE",
+                                compressionOptions: {
+                                    level: 6
+                                }
+                            });
+
+                        /*
+                         * Put the fixed archive back
+                         * into the parent archive.
+                         */
+
+                        archive.file(
+                            path,
+                            rebuilt
+                        );
+
+                    } catch (error) {
+
+                        console
