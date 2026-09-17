@@ -18,93 +18,402 @@
             box-sizing: border-box;
         }
 
+
         body {
+
             margin: 0;
+
             min-height: 100vh;
 
             display: flex;
+
             justify-content: center;
+
             align-items: center;
 
-            font-family: Arial, sans-serif;
+            padding: 20px;
 
-            background: #111;
+            font-family:
+                Inter,
+                Arial,
+                sans-serif;
+
+            background:
+                radial-gradient(
+                    circle at top,
+                    #252525 0%,
+                    #111 45%,
+                    #090909 100%
+                );
+
             color: white;
+
         }
 
+
         .container {
-            width: 90%;
-            max-width: 500px;
 
-            padding: 30px;
+            width: 100%;
 
-            background: #1b1b1b;
+            max-width: 520px;
 
-            border-radius: 16px;
+            padding: 34px;
+
+            background:
+                rgba(28, 28, 28, 0.92);
+
+            border:
+                1px solid #333;
+
+            border-radius: 22px;
 
             text-align: center;
 
             box-shadow:
-                0 10px 30px rgba(0, 0, 0, 0.4);
+                0 25px 70px rgba(0, 0, 0, 0.55);
+
+            backdrop-filter:
+                blur(12px);
+
         }
+
+
+        .icon {
+
+            width: 68px;
+
+            height: 68px;
+
+            margin:
+                0 auto 18px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            border-radius: 18px;
+
+            background: #fff;
+
+            color: #111;
+
+            font-size: 30px;
+
+            font-weight: bold;
+
+            box-shadow:
+                0 10px 30px
+                rgba(255, 255, 255, 0.08);
+
+        }
+
 
         h1 {
-            margin-top: 0;
+
+            margin:
+                0 0 8px;
+
+            font-size: 30px;
+
+            letter-spacing:
+                -0.7px;
+
         }
 
-        p {
-            color: #aaa;
+
+        .subtitle {
+
+            margin:
+                0 auto 26px;
+
+            max-width: 380px;
+
+            color: #999;
+
+            font-size: 14px;
+
+            line-height: 1.6;
+
         }
+
+
+        .upload-box {
+
+            position: relative;
+
+            padding: 28px 20px;
+
+            border:
+                1px dashed #555;
+
+            border-radius: 15px;
+
+            background:
+                #171717;
+
+            transition:
+                0.2s ease;
+
+        }
+
+
+        .upload-box:hover {
+
+            border-color: #888;
+
+            background:
+                #1b1b1b;
+
+        }
+
+
+        .upload-icon {
+
+            font-size: 28px;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .upload-text {
+
+            font-size: 14px;
+
+            font-weight: bold;
+
+            color: #ddd;
+
+        }
+
+
+        .upload-help {
+
+            margin-top: 6px;
+
+            font-size: 12px;
+
+            color: #777;
+
+        }
+
 
         input[type="file"] {
+
             width: 100%;
 
-            padding: 12px;
+            margin-top: 18px;
 
-            margin: 20px 0;
+            padding: 11px;
 
-            background: #292929;
+            border:
+                1px solid #333;
 
-            color: white;
+            border-radius: 10px;
 
-            border: 1px solid #444;
+            background:
+                #222;
 
-            border-radius: 8px;
+            color: #bbb;
+
+            cursor: pointer;
+
         }
 
-        button {
-            width: 100%;
 
-            padding: 13px;
+        input[type="file"]::file-selector-button {
+
+            margin-right: 10px;
+
+            padding:
+                8px 12px;
 
             border: none;
 
-            border-radius: 8px;
+            border-radius: 7px;
 
-            background: white;
-            color: black;
+            background: #fff;
 
-            font-size: 15px;
+            color: #111;
+
             font-weight: bold;
 
             cursor: pointer;
+
         }
+
+
+        button {
+
+            width: 100%;
+
+            margin-top: 16px;
+
+            padding: 14px;
+
+            border: none;
+
+            border-radius: 11px;
+
+            background: #fff;
+
+            color: #111;
+
+            font-size: 15px;
+
+            font-weight: 800;
+
+            cursor: pointer;
+
+            transition:
+                transform 0.15s ease,
+                opacity 0.15s ease;
+
+        }
+
 
         button:hover {
-            opacity: 0.85;
+
+            transform:
+                translateY(-1px);
+
+            opacity:
+                0.9;
+
         }
+
+
+        button:active {
+
+            transform:
+                translateY(0);
+
+        }
+
 
         button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+
+            opacity: 0.45;
+
+            cursor:
+                not-allowed;
+
+            transform:
+                none;
+
         }
 
+
         #status {
-            margin-top: 20px;
+
+            min-height: 20px;
+
+            margin-top: 18px;
 
             color: #aaa;
 
-            word-break: break-word;
+            font-size: 13px;
+
+            line-height: 1.5;
+
+            word-break:
+                break-word;
+
+        }
+
+
+        .features {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 8px;
+
+            margin-top: 24px;
+
+        }
+
+
+        .feature {
+
+            padding:
+                12px 6px;
+
+            border-radius: 10px;
+
+            background:
+                #171717;
+
+            border:
+                1px solid #292929;
+
+        }
+
+
+        .feature strong {
+
+            display: block;
+
+            font-size: 12px;
+
+            color: #ddd;
+
+        }
+
+
+        .feature span {
+
+            display: block;
+
+            margin-top: 4px;
+
+            font-size: 10px;
+
+            color: #666;
+
+        }
+
+
+        .footer {
+
+            margin-top: 22px;
+
+            font-size: 11px;
+
+            color: #555;
+
+        }
+
+
+        @media (max-width: 480px) {
+
+            .container {
+
+                padding: 25px 18px;
+
+                border-radius: 18px;
+
+            }
+
+
+            h1 {
+
+                font-size: 26px;
+
+            }
+
+
+            .features {
+
+                grid-template-columns:
+                    1fr;
+
+            }
+
         }
 
     </style>
@@ -114,19 +423,53 @@
 
 <body>
 
+
     <div class="container">
 
-        <h1>MC Pack Fixer</h1>
 
-        <p>
-            Upload a Minecraft .mcpack or .zip
+        <div class="icon">
+            MC
+        </div>
+
+
+        <h1>
+            MC Pack Fixer
+        </h1>
+
+
+        <p class="subtitle">
+            Fix Minecraft Bedrock pack manifests
+            in seconds. Supports .mcpack,
+            .mcaddon, and .zip files.
         </p>
 
-        <input
-            type="file"
-            id="file"
-            accept=".mcpack,.zip"
-        >
+
+        <div class="upload-box">
+
+
+            <div class="upload-icon">
+                📦
+            </div>
+
+
+            <div class="upload-text">
+                Choose your pack
+            </div>
+
+
+            <div class="upload-help">
+                .mcpack • .mcaddon • .zip
+            </div>
+
+
+            <input
+                type="file"
+                id="file"
+                accept=".mcpack,.mcaddon,.zip"
+            >
+
+        </div>
+
 
         <button
             id="fixButton"
@@ -135,18 +478,74 @@
             Fix & Download
         </button>
 
+
         <div id="status"></div>
+
+
+        <div class="features">
+
+
+            <div class="feature">
+
+                <strong>
+                    Fast
+                </strong>
+
+                <span>
+                    Browser based
+                </span>
+
+            </div>
+
+
+            <div class="feature">
+
+                <strong>
+                    Private
+                </strong>
+
+                <span>
+                    No upload
+                </span>
+
+            </div>
+
+
+            <div class="feature">
+
+                <strong>
+                    Easy
+                </strong>
+
+                <span>
+                    One click
+                </span>
+
+            </div>
+
+
+        </div>
+
+
+        <div class="footer">
+            Minecraft Bedrock Pack Utility
+        </div>
+
 
     </div>
 
 
     <!-- JSZip -->
+
     <script
         src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
     ></script>
 
-    <!-- Your script -->
+
+    <!-- Your working fixer -->
+
     <script src="script.js"></script>
+
 
 </body>
 
