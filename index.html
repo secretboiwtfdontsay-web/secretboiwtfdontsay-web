@@ -1,552 +1,440 @@
-<!DOCTYPE html>
-<html lang="en">
+async function fixPack() {
 
-<head>
+    const fileInput = document.getElementById("file");
+    const status = document.getElementById("status");
+    const button = document.getElementById("fixButton");
 
-    <meta charset="UTF-8">
+    if (!fileInput.files.length) {
+        status.textContent = "Please select a pack file.";
+        return;
+    }
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    const file = fileInput.files[0];
+    const fileName = file.name.toLowerCase();
 
-    <title>MC Pack Fixer</title>
+    if (
+        !fileName.endsWith(".zip") &&
+        !fileName.endsWith(".mcpack") &&
+        !fileName.endsWith(".mcaddon") &&
+        !fileName.endsWith(".mctemplate")
+    ) {
+        status.textContent =
+            "Only .zip, .mcpack, .mcaddon and .mctemplate files are supported.";
+        return;
+    }
 
-    <style>
+    try {
 
-        * {
-            box-sizing: border-box;
-        }
+        button.disabled = true;
+        status.textContent = "Reading pack...";
+
+        const zip = await JSZip.loadAsync(file);
+
+        let fixedCount = 0;
+        let nestedPackCount = 0;
 
 
-        body {
+        /*
+        ==========================================
+        FIX A MANIFEST
+        ==========================================
+        */
 
-            margin: 0;
+        async function fixManifest(zipObject, manifestPath) {
 
-            min-height: 100vh;
+            try {
 
-            display: flex;
+                const manifestFile =
+                    zipObject.file(manifestPath);
 
-            justify-content: center;
+                if (!manifestFile) return false;
 
-            align-items: center;
+                const text =
+                    await manifestFile.async("text");
 
-            padding: 20px;
+                const manifest =
+                    JSON.parse(text);
 
-            font-family:
-                Inter,
-                Arial,
-                sans-serif;
+                let changed = false;
 
-            background:
-                radial-gradient(
-                    circle at top,
-                    #252525 0%,
-                    #111 45%,
-                    #090909 100%
+
+                /*
+                ONLY CHANGE HEADER
+                */
+
+                if (manifest.header) {
+
+                    if (
+                        Object.prototype.hasOwnProperty.call(
+                            manifest.header,
+                            "name"
+                        )
+                    ) {
+
+                        manifest.header.name =
+                            "pack.name";
+
+                        changed = true;
+                    }
+
+
+                    if (
+                        Object.prototype.hasOwnProperty.call(
+                            manifest.header,
+                            "description"
+                        )
+                    ) {
+
+                        manifest.header.description =
+                            "pack.description";
+
+                        changed = true;
+                    }
+
+                }
+
+
+                if (changed) {
+
+                    zipObject.file(
+                        manifestPath,
+                        JSON.stringify(
+                            manifest,
+                            null,
+                            2
+                        )
+                    );
+
+                    fixedCount++;
+
+                }
+
+                return true;
+
+            } catch (error) {
+
+                console.warn(
+                    "Could not process manifest:",
+                    manifestPath,
+                    error
                 );
 
-            color: white;
-
+                return false;
+            }
         }
 
 
-        .container {
+        /*
+        ==========================================
+        RECURSIVELY SCAN ZIP
+        ==========================================
+        */
 
-            width: 100%;
+        async function scanZip(zipObject) {
 
-            max-width: 520px;
+            const entries = [];
 
-            padding: 34px;
+            zipObject.forEach((path, entry) => {
 
-            background:
-                rgba(28, 28, 28, 0.92);
+                if (!entry.dir) {
+                    entries.push({
+                        path,
+                        entry
+                    });
+                }
 
-            border:
-                1px solid #333;
+            });
 
-            border-radius: 22px;
 
-            text-align: center;
+            /*
+            FIRST:
+            Find every manifest directly inside
+            this archive, including folders such as:
 
-            box-shadow:
-                0 25px 70px rgba(0, 0, 0, 0.55);
+            behavior_packs/BP/manifest.json
+            resource_packs/RP/manifest.json
+            */
 
-            backdrop-filter:
-                blur(12px);
+            for (const item of entries) {
 
-        }
+                if (
+                    item.path
+                        .toLowerCase()
+                        .endsWith("manifest.json")
+                ) {
 
-
-        .icon {
-
-            width: 68px;
-
-            height: 68px;
-
-            margin:
-                0 auto 18px;
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: center;
-
-            border-radius: 18px;
-
-            background: #fff;
-
-            color: #111;
-
-            font-size: 30px;
-
-            font-weight: bold;
-
-            box-shadow:
-                0 10px 30px
-                rgba(255, 255, 255, 0.08);
-
-        }
-
-
-        h1 {
-
-            margin:
-                0 0 8px;
-
-            font-size: 30px;
-
-            letter-spacing:
-                -0.7px;
-
-        }
-
-
-        .subtitle {
-
-            margin:
-                0 auto 26px;
-
-            max-width: 380px;
-
-            color: #999;
-
-            font-size: 14px;
-
-            line-height: 1.6;
-
-        }
-
-
-        .upload-box {
-
-            position: relative;
-
-            padding: 28px 20px;
-
-            border:
-                1px dashed #555;
-
-            border-radius: 15px;
-
-            background:
-                #171717;
-
-            transition:
-                0.2s ease;
-
-        }
-
-
-        .upload-box:hover {
-
-            border-color: #888;
-
-            background:
-                #1b1b1b;
-
-        }
-
-
-        .upload-icon {
-
-            font-size: 28px;
-
-            margin-bottom: 8px;
-
-        }
-
-
-        .upload-text {
-
-            font-size: 14px;
-
-            font-weight: bold;
-
-            color: #ddd;
-
-        }
-
-
-        .upload-help {
-
-            margin-top: 6px;
-
-            font-size: 12px;
-
-            color: #777;
-
-        }
-
-
-        input[type="file"] {
-
-            width: 100%;
-
-            margin-top: 18px;
-
-            padding: 11px;
-
-            border:
-                1px solid #333;
-
-            border-radius: 10px;
-
-            background:
-                #222;
-
-            color: #bbb;
-
-            cursor: pointer;
-
-        }
-
-
-        input[type="file"]::file-selector-button {
-
-            margin-right: 10px;
-
-            padding:
-                8px 12px;
-
-            border: none;
-
-            border-radius: 7px;
-
-            background: #fff;
-
-            color: #111;
-
-            font-weight: bold;
-
-            cursor: pointer;
-
-        }
-
-
-        button {
-
-            width: 100%;
-
-            margin-top: 16px;
-
-            padding: 14px;
-
-            border: none;
-
-            border-radius: 11px;
-
-            background: #fff;
-
-            color: #111;
-
-            font-size: 15px;
-
-            font-weight: 800;
-
-            cursor: pointer;
-
-            transition:
-                transform 0.15s ease,
-                opacity 0.15s ease;
-
-        }
-
-
-        button:hover {
-
-            transform:
-                translateY(-1px);
-
-            opacity:
-                0.9;
-
-        }
-
-
-        button:active {
-
-            transform:
-                translateY(0);
-
-        }
-
-
-        button:disabled {
-
-            opacity: 0.45;
-
-            cursor:
-                not-allowed;
-
-            transform:
-                none;
-
-        }
-
-
-        #status {
-
-            min-height: 20px;
-
-            margin-top: 18px;
-
-            color: #aaa;
-
-            font-size: 13px;
-
-            line-height: 1.5;
-
-            word-break:
-                break-word;
-
-        }
-
-
-        .features {
-
-            display: grid;
-
-            grid-template-columns:
-                repeat(3, 1fr);
-
-            gap: 8px;
-
-            margin-top: 24px;
-
-        }
-
-
-        .feature {
-
-            padding:
-                12px 6px;
-
-            border-radius: 10px;
-
-            background:
-                #171717;
-
-            border:
-                1px solid #292929;
-
-        }
-
-
-        .feature strong {
-
-            display: block;
-
-            font-size: 12px;
-
-            color: #ddd;
-
-        }
-
-
-        .feature span {
-
-            display: block;
-
-            margin-top: 4px;
-
-            font-size: 10px;
-
-            color: #666;
-
-        }
-
-
-        .footer {
-
-            margin-top: 22px;
-
-            font-size: 11px;
-
-            color: #555;
-
-        }
-
-
-        @media (max-width: 480px) {
-
-            .container {
-
-                padding: 25px 18px;
-
-                border-radius: 18px;
+                    await fixManifest(
+                        zipObject,
+                        item.path
+                    );
+                }
 
             }
 
 
-            h1 {
+            /*
+            SECOND:
+            Look for nested MC files
+            */
 
-                font-size: 26px;
+            for (const item of entries) {
 
-            }
+                const lower =
+                    item.path.toLowerCase();
 
 
-            .features {
+                const isNestedPack =
+                    lower.endsWith(".mcpack") ||
+                    lower.endsWith(".mcaddon") ||
+                    lower.endsWith(".mctemplate");
 
-                grid-template-columns:
-                    1fr;
+
+                if (!isNestedPack) {
+                    continue;
+                }
+
+
+                try {
+
+                    status.textContent =
+                        "Checking " + item.path + "...";
+
+
+                    const nestedData =
+                        await item.entry.async("arraybuffer");
+
+
+                    const nestedZip =
+                        await JSZip.loadAsync(nestedData);
+
+
+                    nestedPackCount++;
+
+
+                    /*
+                    Recursively process it
+                    */
+
+                    await scanZip(nestedZip);
+
+
+                    /*
+                    Put the modified archive back
+                    */
+
+                    const rebuilt =
+                        await nestedZip.generateAsync({
+                            type: "uint8array",
+                            compression: "DEFLATE",
+                            compressionOptions: {
+                                level: 6
+                            }
+                        });
+
+
+                    zipObject.file(
+                        item.path,
+                        rebuilt
+                    );
+
+
+                } catch (error) {
+
+                    console.warn(
+                        "Could not open nested pack:",
+                        item.path,
+                        error
+                    );
+
+                }
 
             }
 
         }
 
-    </style>
 
-</head>
+        /*
+        ==========================================
+        START SCAN
+        ==========================================
+        */
 
-
-<body>
-
-
-    <div class="container">
-
-
-        <div class="icon">
-            MC
-        </div>
+        await scanZip(zip);
 
 
-        <h1>
-            MC Pack Fixer
-        </h1>
+        if (fixedCount === 0) {
+
+            throw new Error(
+                "No manifest header name or description fields were found."
+            );
+
+        }
 
 
-        <p class="subtitle">
-            Fix Minecraft Bedrock pack manifests
-            in seconds. Supports .mcpack,
-            .mcaddon, and .zip files.
-        </p>
+        /*
+        ==========================================
+        DETERMINE OUTPUT EXTENSION
+        ==========================================
+        */
+
+        let outputName;
 
 
-        <div class="upload-box">
+        /*
+        .mctemplate stays .mctemplate
+        */
+
+        if (
+            fileName.endsWith(".mctemplate")
+        ) {
+
+            outputName =
+                file.name.replace(
+                    /\.mctemplate$/i,
+                    ""
+                ) + ".mctemplate";
+
+        }
 
 
-            <div class="upload-icon">
-                📦
-            </div>
+        /*
+        .mcaddon stays .mcaddon
+        */
+
+        else if (
+            fileName.endsWith(".mcaddon")
+        ) {
+
+            outputName =
+                file.name.replace(
+                    /\.mcaddon$/i,
+                    ""
+                ) + ".mcaddon";
+
+        }
 
 
-            <div class="upload-text">
-                Choose your pack
-            </div>
+        /*
+        .mcpack stays .mcpack
+        */
+
+        else if (
+            fileName.endsWith(".mcpack")
+        ) {
+
+            outputName =
+                file.name.replace(
+                    /\.mcpack$/i,
+                    ""
+                ) + ".mcpack";
+
+        }
 
 
-            <div class="upload-help">
-                .mcpack • .mcaddon • .zip
-            </div>
+        /*
+        ZIP:
+        multiple packs = MCADDON
+        single/normal pack = MCPACK
+        */
+
+        else {
+
+            const baseName =
+                file.name.replace(
+                    /\.zip$/i,
+                    ""
+                );
 
 
-            <input
-                type="file"
-                id="file"
-                accept=".mcpack,.mcaddon,.zip"
-            >
+            if (nestedPackCount >= 2) {
 
-        </div>
+                outputName =
+                    baseName
+                        .replace(
+                            /\.(mcaddon|mcpack)$/i,
+                            ""
+                        ) + ".mcaddon";
 
+            } else {
 
-        <button
-            id="fixButton"
-            onclick="fixPack()"
-        >
-            Fix & Download
-        </button>
+                outputName =
+                    baseName
+                        .replace(
+                            /\.(mcaddon|mcpack)$/i,
+                            ""
+                        ) + ".mcpack";
 
+            }
 
-        <div id="status"></div>
-
-
-        <div class="features">
-
-
-            <div class="feature">
-
-                <strong>
-                    Fast
-                </strong>
-
-                <span>
-                    Browser based
-                </span>
-
-            </div>
+        }
 
 
-            <div class="feature">
+        /*
+        ==========================================
+        CREATE DOWNLOAD
+        ==========================================
+        */
 
-                <strong>
-                    Private
-                </strong>
-
-                <span>
-                    No upload
-                </span>
-
-            </div>
+        status.textContent =
+            "Creating fixed pack...";
 
 
-            <div class="feature">
+        const output =
+            await zip.generateAsync({
 
-                <strong>
-                    Easy
-                </strong>
+                type: "blob",
 
-                <span>
-                    One click
-                </span>
+                compression: "DEFLATE",
 
-            </div>
+                compressionOptions: {
+                    level: 6
+                }
 
-
-        </div>
+            });
 
 
-        <div class="footer">
-            Minecraft Bedrock Pack Utility
-        </div>
+        const url =
+            URL.createObjectURL(output);
 
 
-    </div>
+        const download =
+            document.createElement("a");
 
 
-    <!-- JSZip -->
-
-    <script
-        src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
-    ></script>
+        download.href = url;
+        download.download = outputName;
 
 
-    <!-- Your working fixer -->
+        document.body.appendChild(download);
 
-    <script src="script.js"></script>
+        download.click();
+
+        download.remove();
 
 
-</body>
+        URL.revokeObjectURL(url);
 
-</html>
+
+        status.textContent =
+            `Done! Fixed ${fixedCount} manifest(s).`;
+
+    }
+
+
+    catch (error) {
+
+        console.error(error);
+
+        status.textContent =
+            "Error: " + error.message;
+
+    }
+
+
+    finally {
+
+        button.disabled = false;
+
+    }
+
+}
